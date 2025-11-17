@@ -1,4 +1,4 @@
-FROM python:3.10.4-slim-buster
+FROM python:3.10-slim-bullseye
 
 RUN apt update && apt install -y git curl ffmpeg && apt clean
 
