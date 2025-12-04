@@ -41,6 +41,7 @@ asyncio.set_event_loop(loop)
 botStartTime = time.time()
 
 # Initialize Telethon client
+# আমরা শুধু একটি Telethon ক্লায়েন্ট রাখব। 'sex' নামটি অন্যান্য ফাইলে ব্যবহৃত হচ্ছে তাই এটিই রাখছি।
 logger.info("Creating Telethon Bot Client From BOT_TOKEN")
 sex = TelegramClient('sexrepo', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 logger.info("Telethon Bot Client Created Successfully")
@@ -67,9 +68,8 @@ if DEFAULT_SESSION:
 else:
     userrbot = None
 
-# Initialize another Telethon client
-telethon_client = TelegramClient('telethon_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
-logger.info("Pyro Bot Client Created Successfully")
+# [REMOVED] The second redundant Telethon client initialization was causing FloodWait errors.
+# telethon_client = TelegramClient('telethon_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
 # Initialize MongoDB client
 logger.info("Creating Mongo Client From MONGO_DB")
@@ -107,4 +107,7 @@ async def restrict_bot():
     logger.info("RestrictedContentDL Successfully Started 💥")
 
 # Run the bot
-loop.run_until_complete(restrict_bot())
+# Note: loop.run_until_complete is usually handled in __main__.py, but keeping structure as provided.
+# If this file is imported, this line might run immediately. Ensure logic flow is correct.
+if __name__ == "__main__":
+    loop.run_until_complete(restrict_bot())
