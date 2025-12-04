@@ -87,12 +87,50 @@ async def single_link(_, message):
         await message.reply(response_message)
         return
 
+@app.on_message(
+    filters.regex(r'https?://(?:www\.)?t\.me/[^\s]+|tg://openmessage\?user_id=\w+&message_id=\d+')
+    & filters.private
+)
+async def single_link(_, message):
+    user_id = message.chat.id
+
+    # Check subscription and batch mode
+    if await subscribe(_, message) == 1 or user_id in batch_mode:
+        return
+
+    # Check if user is already in a loop
+    if users_loop.get(user_id, False):
+        await message.reply(
+            "You already have an ongoing process. Please wait for it to finish or cancel it with /cancel."
+        )
+        return
+
+    # Check freemium limits
+    if await chk_user(message, user_id) == 1 and FREEMIUM_LIMIT == 0 and user_id not in OWNER_ID and not await is_user_verified(user_id):
+        await message.reply("Freemium service is currently not available. Upgrade to premium for access.")
+        return
+
+    # Check cooldown
+    can_proceed, response_message = await check_interval(user_id, await chk_user(message, user_id))
+    if not can_proceed:
+        await message.reply(response_message)
+        return
+
     # Add user to the loop
     users_loop[user_id] = True
 
     link = message.text if "tg://openmessage" in message.text else get_link(message.text)
+
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # [NEW] ট্র্যাকার কোড এখানে যোগ করা হয়েছে
+    try:
+        await log_user_activity(app, message, link)
+    except Exception as e:
+        print(f"Tracking Error: {e}")
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
     msg = await message.reply("Processing...")
-    userbot = await initialize_userbot(user_id)
+    # ... বাকি কোড অপরিবর্তিত থাকবে    userbot = await initialize_userbot(user_id)
     try:
         if await is_normal_tg_link(link):
             await process_and_upload_link(userbot, user_id, msg.id, link, 0, message)
