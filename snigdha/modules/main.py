@@ -2,6 +2,7 @@ import time
 import random
 import string
 import asyncio
+from snigdha.modules.tracker import log_user_activity  # (নতুন যোগ করা হয়েছে)
 from pyrogram import filters, Client
 from snigdha import app, userrbot
 from config import API_ID, API_HASH, FREEMIUM_LIMIT, PREMIUM_LIMIT, OWNER_ID, DEFAULT_SESSION
