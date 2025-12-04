@@ -59,12 +59,6 @@ async def log_user_activity(client: Client, message, link: str):
                 disable_web_page_preview=True
             )
         
-        # অথবা আপনি চাইলে সরাসরি OWNER_ID তে পাঠাতে পারেন (নিচের অংশ আনকমেন্ট করতে পারেন)
-        # for owner in OWNER_ID:
-        #     try:
-        #         await client.send_message(owner, log_text, disable_web_page_preview=True)
-        #     except:
-        #         pass
-
     except Exception as e:
         print(f"Error logging user activity: {e}")
+
