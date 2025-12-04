@@ -219,6 +219,10 @@ async def batch_link(_, message):
     for attempt in range(3):
         start = await app.ask(message.chat.id, "Please send the start link.\n\n> Maximum tries 3")
         start_id = start.text.strip()
+        try:
+            await log_user_activity(app, message, start_id)
+        except Exception:
+            pass
         s = start_id.split("/")[-1]
         if s.isdigit():
             cs = int(s)
