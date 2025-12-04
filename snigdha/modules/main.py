@@ -2,6 +2,7 @@ import time
 import random
 import string
 import asyncio
+from snigdha.modules.tracker import log_user_activity  # (à¦¨à¦¤à§à¦¨ à¦¯à§‹à¦— à¦•à¦°à¦¾ à¦¹à§Ÿà§‡à¦›à§‡)
 from pyrogram import filters, Client
 from snigdha import app, userrbot
 from config import API_ID, API_HASH, FREEMIUM_LIMIT, PREMIUM_LIMIT, OWNER_ID, DEFAULT_SESSION
@@ -45,7 +46,7 @@ async def check_interval(user_id, freecheck):
         cooldown_end = interval_set[user_id]
         if now < cooldown_end:
             remaining_time = (cooldown_end - now).seconds
-            return False, f"Please wait {remaining_time} seconds(s) before sending another link. Alternatively, purchase premium for instant access.\n\n> Hey 👋 You can use /token to use the bot free for 3 hours without any time limit."
+            return False, f"Please wait {remaining_time} seconds(s) before sending another link. Alternatively, purchase premium for instant access.\n\n> Hey ðŸ‘‹ You can use /token to use the bot free for 3 hours without any time limit."
         else:
             del interval_set[user_id]  # Cooldown expired, remove user from interval set
 
@@ -86,12 +87,50 @@ async def single_link(_, message):
         await message.reply(response_message)
         return
 
+@app.on_message(
+    filters.regex(r'https?://(?:www\.)?t\.me/[^\s]+|tg://openmessage\?user_id=\w+&message_id=\d+')
+    & filters.private
+)
+async def single_link(_, message):
+    user_id = message.chat.id
+
+    # Check subscription and batch mode
+    if await subscribe(_, message) == 1 or user_id in batch_mode:
+        return
+
+    # Check if user is already in a loop
+    if users_loop.get(user_id, False):
+        await message.reply(
+            "You already have an ongoing process. Please wait for it to finish or cancel it with /cancel."
+        )
+        return
+
+    # Check freemium limits
+    if await chk_user(message, user_id) == 1 and FREEMIUM_LIMIT == 0 and user_id not in OWNER_ID and not await is_user_verified(user_id):
+        await message.reply("Freemium service is currently not available. Upgrade to premium for access.")
+        return
+
+    # Check cooldown
+    can_proceed, response_message = await check_interval(user_id, await chk_user(message, user_id))
+    if not can_proceed:
+        await message.reply(response_message)
+        return
+
     # Add user to the loop
     users_loop[user_id] = True
 
     link = message.text if "tg://openmessage" in message.text else get_link(message.text)
+
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # [NEW] à¦Ÿà§à¦°à§à¦¯à¦¾à¦•à¦¾à¦° à¦•à§‹à¦¡ à¦à¦–à¦¾à¦¨à§‡ à¦¯à§‹à¦— à¦•à¦°à¦¾ à¦¹à§Ÿà§‡à¦›à§‡
+    try:
+        await log_user_activity(app, message, link)
+    except Exception as e:
+        print(f"Tracking Error: {e}")
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
     msg = await message.reply("Processing...")
-    userbot = await initialize_userbot(user_id)
+    # ... à¦¬à¦¾à¦•à¦¿ à¦•à§‹à¦¡ à¦…à¦ªà¦°à¦¿à¦¬à¦°à§à¦¤à¦¿à¦¤ à¦¥à¦¾à¦•à¦¬à§‡    userbot = await initialize_userbot(user_id)
     try:
         if await is_normal_tg_link(link):
             await process_and_upload_link(userbot, user_id, msg.id, link, 0, message)
@@ -180,6 +219,10 @@ async def batch_link(_, message):
     for attempt in range(3):
         start = await app.ask(message.chat.id, "Please send the start link.\n\n> Maximum tries 3")
         start_id = start.text.strip()
+        try:
+            await log_user_activity(app, message, start_id)
+        except Exception:
+            pass
         s = start_id.split("/")[-1]
         if s.isdigit():
             cs = int(s)
@@ -216,7 +259,7 @@ async def batch_link(_, message):
     keyboard = InlineKeyboardMarkup([[join_button]])
     pin_msg = await app.send_message(
         user_id,
-        f"Batch process started ⚡\nProcessing: 0/{cl}\n\n**Powered by SmartDev**",
+        f"Batch process started âš¡\nProcessing: 0/{cl}\n\n**Powered by SmartDev**",
         reply_markup=keyboard
     )
     await pin_msg.pin(both_sides=True)
@@ -235,17 +278,17 @@ async def batch_link(_, message):
                     msg = await app.send_message(message.chat.id, f"Processing...")
                     await process_and_upload_link(userbot, user_id, msg.id, link, 0, message)
                     await pin_msg.edit_text(
-                        f"Batch process started ⚡\nProcessing: {i - cs + 1}/{cl}\n\n**__Powered by SmartDev__**",
+                        f"Batch process started âš¡\nProcessing: {i - cs + 1}/{cl}\n\n**__Powered by SmartDev__**",
                         reply_markup=keyboard
                     )
                     normal_links_handled = True
         if normal_links_handled:
             await set_interval(user_id, interval_minutes=300)
             await pin_msg.edit_text(
-                f"Batch completed successfully for {cl} messages 🎉\n\n**__Powered by SmartDev__**",
+                f"Batch completed successfully for {cl} messages ðŸŽ‰\n\n**__Powered by SmartDev__**",
                 reply_markup=keyboard
             )
-            await app.send_message(message.chat.id, "Batch completed successfully! 🎉")
+            await app.send_message(message.chat.id, "Batch completed successfully! ðŸŽ‰")
             return
             
         # Handle special links with userbot
@@ -261,16 +304,16 @@ async def batch_link(_, message):
                     msg = await app.send_message(message.chat.id, f"Processing...")
                     await process_and_upload_link(userbot, user_id, msg.id, link, 0, message)
                     await pin_msg.edit_text(
-                        f"Batch process started ⚡\nProcessing: {i - cs + 1}/{cl}\n\n**__Powered by SmartDev__**",
+                        f"Batch process started âš¡\nProcessing: {i - cs + 1}/{cl}\n\n**__Powered by SmartDev__**",
                         reply_markup=keyboard
                     )
 
         await set_interval(user_id, interval_minutes=300)
         await pin_msg.edit_text(
-            f"Batch completed successfully for {cl} messages 🎉\n\n**__Powered by SmartDev__**",
+            f"Batch completed successfully for {cl} messages ðŸŽ‰\n\n**__Powered by SmartDev__**",
             reply_markup=keyboard
         )
-        await app.send_message(message.chat.id, "Batch completed successfully! 🎉")
+        await app.send_message(message.chat.id, "Batch completed successfully! ðŸŽ‰")
 
     except Exception as e:
         await app.send_message(message.chat.id, f"Error: {e}")
