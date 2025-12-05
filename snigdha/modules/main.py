@@ -2,7 +2,6 @@ import time
 import random
 import string
 import asyncio
-from snigdha.modules.tracker import log_user_activity
 from pyrogram import filters, Client
 from snigdha import app, userrbot
 from config import API_ID, API_HASH, FREEMIUM_LIMIT, PREMIUM_LIMIT, OWNER_ID, DEFAULT_SESSION
@@ -14,9 +13,10 @@ from datetime import datetime, timedelta
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 import subprocess
 from snigdha.modules.shrink import is_user_verified
-
 async def generate_random_name(length=8):
     return ''.join(random.choices(string.ascii_lowercase, k=length))
+
+
 
 users_loop = {}
 interval_set = {}
@@ -90,13 +90,6 @@ async def single_link(_, message):
     users_loop[user_id] = True
 
     link = message.text if "tg://openmessage" in message.text else get_link(message.text)
-
-    # [TRACKER] Log User Activity
-    try:
-        await log_user_activity(app, message, link)
-    except Exception as e:
-        print(f"Tracking Error: {e}")
-
     msg = await message.reply("Processing...")
     userbot = await initialize_userbot(user_id)
     try:
@@ -187,10 +180,6 @@ async def batch_link(_, message):
     for attempt in range(3):
         start = await app.ask(message.chat.id, "Please send the start link.\n\n> Maximum tries 3")
         start_id = start.text.strip()
-        try:
-            await log_user_activity(app, message, start_id)
-        except Exception:
-            pass
         s = start_id.split("/")[-1]
         if s.isdigit():
             cs = int(s)
@@ -309,5 +298,3 @@ async def stop_batch(_, message):
             message.chat.id, 
             "No active batch processing is running to cancel."
         )
-
-
