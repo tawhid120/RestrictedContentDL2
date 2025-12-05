@@ -67,8 +67,9 @@ if DEFAULT_SESSION:
 else:
     userrbot = None
 
-# [FIXED] Removed the second Telethon client initialization that caused FloodWait
-# telethon_client = TelegramClient('telethon_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+# Initialize another Telethon client
+telethon_client = TelegramClient('telethon_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+logger.info("Pyro Bot Client Created Successfully")
 
 # Initialize MongoDB client
 logger.info("Creating Mongo Client From MONGO_DB")
@@ -106,6 +107,4 @@ async def restrict_bot():
     logger.info("RestrictedContentDL Successfully Started 💥")
 
 # Run the bot
-# loop.run_until_complete(restrict_bot())
-
-
+loop.run_until_complete(restrict_bot())
